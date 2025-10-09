@@ -1,0 +1,62 @@
+# Render Blueprint for Bridge Status Bot
+# Single web service runs both API and Bot (free tier)
+
+services:
+  # API + Bot in ONE service (no worker needed)
+  - type: web
+    name: bridge-bot-api
+    env: python
+    region: frankfurt
+    plan: starter
+    buildCommand: |
+      # Clear Python cache to avoid stale imports
+      find . -type d -name __pycache__ -exec rm -rf {} + || true
+      find . -type f -name "*.pyc" -delete || true
+      # Install with no cache
+      pip install --upgrade pip
+      pip install --no-cache-dir -r requirements.txt
+      alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bridge-bot-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: bridge-bot-redis
+          property: connectionString
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: CHECK_INTERVAL_SECONDS
+        value: 300
+      - key: ALERT_COOLDOWN_MINUTES
+        value: 30
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: API_PORT
+        value: 10000
+      - key: CORS_ORIGINS
+        value: '["*"]'
+
+databases:
+  # PostgreSQL Database
+  - name: bridge-bot-db
+    databaseName: bridge_bot
+    user: bridge_bot_user
+    plan: starter
+    region: frankfurt
+
+  # Redis Cache
+  - name: bridge-bot-redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    region: frankfurt

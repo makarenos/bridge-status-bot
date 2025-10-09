@@ -1,0 +1,68 @@
+{
+  "stargate_success": {
+    "status": "operational",
+    "chains": [
+      {
+        "chainId": 1,
+        "name": "Ethereum",
+        "health": "UP"
+      },
+      {
+        "chainId": 137,
+        "name": "Polygon",
+        "health": "UP"
+      }
+    ],
+    "timestamp": "2025-01-15T10:30:00Z"
+  },
+  "hop_success": {
+    "liquidity": {
+      "USDC": {
+        "ethereum": "5000000",
+        "polygon": "3000000",
+        "arbitrum": "4500000"
+      },
+      "ETH": {
+        "ethereum": "2000",
+        "optimism": "1500"
+      }
+    },
+    "totalUSD": "15000000"
+  },
+  "arbitrum_success": {
+    "status": "healthy",
+    "withdrawalQueue": 234,
+    "averageWithdrawalTime": "1200",
+    "lastCheckpoint": "2025-01-15T10:25:00Z"
+  },
+  "polygon_success": {
+    "status": "operational",
+    "checkpointDelay": "25",
+    "lastCheckpoint": "2025-01-15T10:20:00Z",
+    "bridgeHealth": "UP"
+  },
+  "optimism_success": {
+    "status": "UP",
+    "queueLength": 450,
+    "processingTime": "1800",
+    "health": "operational"
+  },
+  "generic_error_500": {
+    "error": "Internal server error",
+    "code": 500,
+    "message": "Bridge API is experiencing issues"
+  },
+  "generic_error_503": {
+    "error": "Service unavailable",
+    "code": 503,
+    "message": "Bridge is temporarily down for maintenance"
+  },
+  "degraded_service": {
+    "status": "degraded",
+    "issues": [
+      "High latency detected",
+      "Some endpoints unresponsive"
+    ],
+    "severity": "medium"
+  }
+}

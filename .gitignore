@@ -1,0 +1,162 @@
+# Python stuff
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE stuff
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables (важно! токены не должны попасть в git)
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Docker volumes
+postgres_data/
+redis_data/
+
+# OS stuff
+.DS_Store
+Thumbs.db
+
+# Alembic
+alembic/versions/*.pyc
+
+# Jupyter Notebooks (если вдруг будем анализировать данные)
+.ipynb_checkpoints/
+*.ipynb
+
+# MyPy type checker
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyright/Pylance
+.pyright/
+pyrightconfig.json
+
+# Environments and secrets (дополнительно)
+*.env
+.env.*
+!.env.example
+secrets.yml
+secrets.yaml
+.secrets/
+
+# SSL certificates and keys (ВАЖНО для безопасности!)
+*.pem
+*.key
+*.cert
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Docker stuff (дополнительно)
+docker-compose.override.yml
+.dockerignore.bak
+
+# Database dumps and migrations backups
+*.sql
+*.dump
+*.sqlite
+migrations_backup/
+
+# Coverage reports (дополнительно к htmlcov)
+.coverage.*
+coverage.xml
+*.cover
+
+# PyCharm specific
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+
+# VS Code specific (дополнительно)
+.vscode/*.code-workspace
+.history/
+
+# macOS (дополнительно)
+.AppleDouble
+.LSOverride
+._*
+
+# Windows (дополнительно)
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# Archived/compressed files (обычно не нужны в репе)
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Large data files (если будем хранить datasets)
+*.csv
+*.xlsx
+*.xls
+data/
+datasets/
+
+# Local config overrides
+config.local.py
+settings.local.py
+
+# Node modules (если будет фронтенд)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build artifacts
+*.exe
+*.out
+*.app
