@@ -20,6 +20,7 @@ from app.utils.logger import logger
 from app.api.routes import bridges, health
 from app.api.routes.websocket import websocket_endpoint, manager as ws_manager
 from app.bot import BridgeStatusBot
+from app.services.keep_alive import KeepAliveService
 
 # global bot instance
 telegram_bot: Application = None
@@ -34,6 +35,8 @@ async def lifespan(app: FastAPI):
     global telegram_bot
 
     logger.info("Starting API + Bot in single process...")
+
+    keep_alive = None  # declare here so it's available in shutdown
 
     # connect to Redis
     try:
@@ -50,8 +53,8 @@ async def lifespan(app: FastAPI):
 
         telegram_bot = (
             Application.builder()
-            .token(settings.telegram_bot_token)
-            .build()
+                .token(settings.telegram_bot_token)
+                .build()
         )
 
         # set session_maker BEFORE registering handlers
@@ -68,13 +71,13 @@ async def lifespan(app: FastAPI):
 
         logger.info("Bot initialized")
 
-        # set webhook URL - Render provides RENDER_EXTERNAL_URL
+        # set webhook URL
         webhook_url = f"https://bridge-status-bot.onrender.com{WEBHOOK_PATH}"
 
         try:
             await telegram_bot.bot.set_webhook(
                 url=webhook_url,
-                drop_pending_updates=True  # clear old updates
+                drop_pending_updates=True
             )
             logger.info(f"Webhook set to: {webhook_url}")
         except Exception as e:
@@ -99,7 +102,12 @@ async def lifespan(app: FastAPI):
             websocket_manager=ws_manager
         )
         scheduler.start()
-        logger.info("Scheduler started")
+
+        # start keep-alive to prevent Render from sleeping
+        keep_alive = KeepAliveService("https://bridge-status-bot.onrender.com")
+        keep_alive.start()
+
+        logger.info("Scheduler and keep-alive started")
     except Exception as e:
         logger.error(f"Scheduler failed: {e}")
         raise
@@ -118,6 +126,10 @@ async def lifespan(app: FastAPI):
 
     # SHUTDOWN
     logger.info("Shutting down...")
+
+    # stop keep-alive first
+    if keep_alive:
+        keep_alive.stop()
 
     # delete webhook
     if telegram_bot:
