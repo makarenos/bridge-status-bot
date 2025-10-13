@@ -1,6 +1,6 @@
 """
 FastAPI + Telegram Bot in single process
-Using webhook for production (no polling conflicts)
+Using polling mode (works better on Render free tier)
 """
 
 import asyncio
@@ -24,7 +24,6 @@ from app.services.keep_alive import KeepAliveService
 
 # global bot instance
 telegram_bot: Application = None
-WEBHOOK_PATH = f"/webhook/{settings.telegram_bot_token}"
 
 
 @asynccontextmanager
@@ -36,7 +35,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("Starting API + Bot in single process...")
 
-    keep_alive = None  # declare here so it's available in shutdown
+    keep_alive = None
 
     # connect to Redis
     try:
@@ -53,8 +52,8 @@ async def lifespan(app: FastAPI):
 
         telegram_bot = (
             Application.builder()
-                .token(settings.telegram_bot_token)
-                .build()
+            .token(settings.telegram_bot_token)
+            .build()
         )
 
         # set session_maker BEFORE registering handlers
@@ -71,31 +70,22 @@ async def lifespan(app: FastAPI):
 
         logger.info("Bot initialized")
 
-        # set webhook URL
-        webhook_url = f"https://bridge-status-bot.onrender.com{WEBHOOK_PATH}"
-
-        try:
-            await telegram_bot.bot.set_webhook(
-                url=webhook_url,
-                drop_pending_updates=True
+        # USE POLLING (works reliably on Render free tier)
+        logger.info("Starting bot in polling mode...")
+        asyncio.create_task(
+            telegram_bot.updater.start_polling(
+                allowed_updates=["message", "callback_query"],
+                drop_pending_updates=True,
+                poll_interval=1.0
             )
-            logger.info(f"Webhook set to: {webhook_url}")
-        except Exception as e:
-            logger.error(f"Failed to set webhook: {e}")
-            # fallback to polling if webhook fails
-            asyncio.create_task(
-                telegram_bot.updater.start_polling(
-                    allowed_updates=["message", "callback_query"],
-                    drop_pending_updates=True
-                )
-            )
-            logger.warning("Fell back to polling mode")
+        )
+        logger.info("Bot started in polling mode")
 
     except Exception as e:
         logger.error(f"Bot startup failed: {e}", exc_info=True)
         raise
 
-    # start scheduler with telegram_bot.bot for notifications
+    # start scheduler
     try:
         scheduler = initialize_scheduler(
             bot=telegram_bot.bot,
@@ -127,21 +117,14 @@ async def lifespan(app: FastAPI):
     # SHUTDOWN
     logger.info("Shutting down...")
 
-    # stop keep-alive first
+    # stop keep-alive
     if keep_alive:
         keep_alive.stop()
-
-    # delete webhook
-    if telegram_bot:
-        try:
-            await telegram_bot.bot.delete_webhook()
-            logger.info("Webhook deleted")
-        except Exception as e:
-            logger.error(f"Error deleting webhook: {e}")
 
     # stop bot
     if telegram_bot:
         try:
+            await telegram_bot.updater.stop()
             await telegram_bot.stop()
             await telegram_bot.shutdown()
             logger.info("Bot stopped")
@@ -187,34 +170,6 @@ app.include_router(health.router)
 app.include_router(bridges.router)
 
 
-@app.post(WEBHOOK_PATH)
-async def telegram_webhook(request: Request):
-    """
-    Telegram webhook endpoint
-    Receives updates from Telegram instead of polling
-    """
-    logger.info(f"Webhook received request from {request.client.host}")
-
-    if not telegram_bot:
-        logger.error("Bot not initialized!")
-        return {"status": "bot not initialized"}
-
-    try:
-        data = await request.json()
-        logger.info(f"Webhook data: {data}")
-
-        update = Update.de_json(data, telegram_bot.bot)
-        logger.info(f"Processing update ID: {update.update_id}")
-
-        await telegram_bot.process_update(update)
-
-        logger.info("Update processed successfully")
-        return {"status": "ok"}
-    except Exception as e:
-        logger.error(f"Error processing webhook update: {e}", exc_info=True)
-        return {"status": "error", "message": str(e)}
-
-
 @app.websocket("/ws")
 async def websocket_route(websocket: WebSocket):
     """Real-time bridge updates via WebSocket"""
@@ -231,7 +186,7 @@ async def root():
         "version": "1.0.0",
         "api": "operational",
         "bot": bot_status,
-        "webhook": WEBHOOK_PATH,
+        "mode": "polling",
         "endpoints": {
             "docs": "/docs",
             "health": "/health",
