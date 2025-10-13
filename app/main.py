@@ -193,13 +193,22 @@ async def telegram_webhook(request: Request):
     Telegram webhook endpoint
     Receives updates from Telegram instead of polling
     """
+    logger.info(f"Webhook received request from {request.client.host}")
+
     if not telegram_bot:
+        logger.error("Bot not initialized!")
         return {"status": "bot not initialized"}
 
     try:
         data = await request.json()
+        logger.info(f"Webhook data: {data}")
+
         update = Update.de_json(data, telegram_bot.bot)
+        logger.info(f"Processing update ID: {update.update_id}")
+
         await telegram_bot.process_update(update)
+
+        logger.info("Update processed successfully")
         return {"status": "ok"}
     except Exception as e:
         logger.error(f"Error processing webhook update: {e}", exc_info=True)
